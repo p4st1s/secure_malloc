@@ -7,12 +7,12 @@
 
 typedef struct meta_struck {
     struct meta_struck *p_next;
-    // struct meta_struck *p_prev;
     size_t sz_size;
     void *p_ptr_data;
     int is_free;
     // int i64_canari;
 }meta_struck, *StackMetadata;
+
 
 void    mygetlist();
 void    *init_metadata();

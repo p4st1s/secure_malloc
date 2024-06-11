@@ -1,9 +1,10 @@
 CC = gcc
-CFLAGS = -I./include -Wall -Wextra -Werror 
+CFLAGS = -I./include -Wall -Wextra -Werror
 PRJ = my_secmalloc
 OBJS = src/my_secmalloc.o
 SLIB = lib${PRJ}.a
 LIB = lib${PRJ}.so
+GCOVFLAGS = --coverage
 
 all: ${LIB}
 
@@ -26,15 +27,18 @@ clean:
 distclean: clean
 	${RM} ${SLIB} ${LIB}
 
-build_test: CFLAGS += -DTEST
+build_test: CFLAGS += -DTEST ${GCOVFLAGS}
 build_test: ${OBJS} test/test.o
-	$(CC) -o test/test $^ -lcriterion -Llib
+	$(CC) -o test/test $^ -lcriterion -Llib -lgcov
 
 test: build_test
 	LD_LIBRARY_PATH=./lib test/test
 
+coverage: test
+	lcov --capture --directory . --output-file coverage.info
+	genhtml coverage.info --output-directory out
 
-.PHONY: all clean build_test dynamic test static distclean
+.PHONY: all clean build_test dynamic test static distclean coverage
 
 %.so:
 	$(LINK.c) -shared $^ $(LDLIBS) -o $@

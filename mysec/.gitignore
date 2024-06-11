@@ -5,3 +5,5 @@ __pycache__
 *.o
 *.so
 .gdb_history
+out/*
+*.g*
