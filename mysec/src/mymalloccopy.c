@@ -11,12 +11,11 @@
 #define LOG_ENTER_FUNCTION() my_log("[INFO] Entering function %s\n", __func__)
 #define LOG_EXIT_FUNCTION() my_log("[INFO] Exiting function %s\n", __func__)
 
-#define METADATA_SIZE 100000
+#define METADATA_SIZE 4096
 // ################ GLobal variable #################
 
 meta_struck *ptr_metahead = NULL;
 meta_struck *ptr_metatail = NULL;
-int nb_meta = 0;
 
 // general function to print without using printf
 void my_log(const char *fmt, ...)
@@ -42,13 +41,12 @@ void *init_metadata()
     void *ptr = mmap(NULL, meta_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (ptr == NULL)
     {
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
 
     void *ptr_data = mmap(ptr + sizeof(meta_struck) * METADATA_SIZE, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     meta_struck *ptr_meta = (meta_struck *)ptr;
-    nb_meta++;
     ptr_meta->p_ptr_data = ptr_data;
     ptr_meta->sz_size = 4096;
     ptr_meta->is_free = 1;
@@ -56,8 +54,8 @@ void *init_metadata()
     ptr_metahead = ptr_meta;
     ptr_metatail = ptr_meta;
     my_log("[DEBUG] ptr_meta\n");
-    my_whoami(ptr_meta);
-    // LOG_EXIT_FUNCTION();
+    // my_whoami(ptr_meta);
+    LOG_EXIT_FUNCTION();
     return ptr;
 }
 
@@ -72,16 +70,28 @@ meta_struck *find_empty_block(size_t size)
     {
         if (tmp->is_free == 1 && tmp->sz_size >= size)
         {
-            //my_log("[DEBUG] tmp \n");
+            my_log("[DEBUG] tmp \n");
             // my_whoami(tmp);
-            // LOG_EXIT_FUNCTION();
+            LOG_EXIT_FUNCTION();
             return tmp;
         }
         tmp = tmp->p_next;
     }
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
     return NULL;
 }
+
+// allocate metadata block
+// return NULL if allocation failed
+// else return the metadata block
+// params a définir
+// meta_struck *alloc_metadata(void *actual, size_t size, void *ptr_data, int is_free)
+// {
+//     LOG_ENTER_FUNCTION();
+
+//     LOG_EXIT_FUNCTION();
+//     return NULL;
+// }
 
 // allocate a data block
 // return NULL if allocation failed
@@ -92,7 +102,7 @@ void *my_malloc(size_t size)
     if (size <= 0)
     {
         my_log("[ERROR] Size is less than 0\n");
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
     if (ptr_metahead == NULL)
@@ -102,7 +112,7 @@ void *my_malloc(size_t size)
         if (ptr == NULL)
         {
             my_log("[ERROR] ptr is NULL\n");
-            // LOG_EXIT_FUNCTION();
+            LOG_EXIT_FUNCTION();
             return NULL;
         }
     }
@@ -110,58 +120,64 @@ void *my_malloc(size_t size)
     if (ptr_data == NULL)
     {
         my_log("[ERROR] Data allocation failed\n");
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
 
-    // mygetlist();
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
     return ptr_data;
 }
 
 void *alloc_data_notempty(size_t size)
 {
-    LOG_ENTER_FUNCTION();
-    meta_struck *new_ptr_meta = (meta_struck*)ptr_metahead+sizeof(meta_struck)*nb_meta;
-    nb_meta++;
-    ptr_metatail->p_next = new_ptr_meta;
-    void*ptr_data=mmap(ptr_metahead+sizeof(meta_struck)*METADATA_SIZE, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    new_ptr_meta->p_ptr_data = ptr_data;
-    new_ptr_meta->sz_size = size;
-    new_ptr_meta->is_free = 0;
-    meta_struck *empty_next = (meta_struck*)ptr_metahead+sizeof(meta_struck)*nb_meta;
-    nb_meta++;
-    new_ptr_meta->p_next = empty_next;
-    empty_next->p_ptr_data = ptr_data+size;
-    empty_next->sz_size = 4096-(size%4096);
-    empty_next->is_free = 1;
-    empty_next->p_next = NULL;
-    ptr_metatail=empty_next;
-    my_whoami(new_ptr_meta);
-    my_whoami(empty_next);
-    // LOG_EXIT_FUNCTION();
-    return new_ptr_meta->p_ptr_data;
+    my_log("[INFO] No empty block found\n");
+    void *ptr_data = mmap(ptr_metahead + sizeof(meta_struck) * METADATA_SIZE, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    meta_struck *actual_ptr = (meta_struck *)ptr_metatail + sizeof(meta_struck);
+    meta_struck *empty = (meta_struck *)ptr_metatail + (sizeof(meta_struck) * 2);
+    actual_ptr->p_ptr_data = ptr_data;
+    actual_ptr->sz_size = size;
+    actual_ptr->is_free = 0;
+    actual_ptr->p_next = empty;
+
+    ptr_metatail->p_next = actual_ptr;
+    ptr_metatail = actual_ptr;
+
+    empty->p_ptr_data = actual_ptr->p_ptr_data + size;
+    empty->sz_size = 4096 - (size % 4096);
+    empty->is_free = 1;
+    empty->p_next = NULL;
+
+    ptr_metatail->p_next = empty;
+    ptr_metatail = empty;
+
+    my_log("[DEBUG] actual_ptr\n");
+    // my_whoami(actual_ptr);
+    my_log("[DEBUG] empty\n");
+    // my_whoami(empty);
+
+    LOG_EXIT_FUNCTION();
+    return actual_ptr->p_ptr_data;
 }
 
 void *alloc_data_empty(size_t size, meta_struck *ptr_free)
 {
     LOG_ENTER_FUNCTION();
-    meta_struck *empty = (meta_struck *)ptr_metahead + (sizeof(meta_struck)*nb_meta);
-    nb_meta++;
+    meta_struck *empty = (meta_struck *)ptr_metatail + sizeof(meta_struck);
     empty->p_ptr_data = ptr_free->p_ptr_data + size;
     empty->sz_size = ptr_free->sz_size - size;
     empty->is_free = 1;
-    empty->p_next = ptr_free->p_next;
+    empty->p_next = NULL;
+
+    ptr_metatail->p_next = empty;
+    ptr_metatail = empty;
+    
     ptr_free->sz_size = size;
     ptr_free->is_free = 0;
-    ptr_free->p_next = empty;
-    if (ptr_free == ptr_metatail)
-    {
-        ptr_metatail = empty;
-    }
-    my_whoami(ptr_free);
-    my_whoami(empty);
-    // LOG_EXIT_FUNCTION();
+    my_log("[DEBUG] ptr_free\n");
+    // my_whoami(ptr_free);
+    my_log("[DEBUG] empty\n");
+    // my_whoami(empty);
+    LOG_EXIT_FUNCTION();
     return ptr_free->p_ptr_data;
 }
 
@@ -173,16 +189,16 @@ void *alloc_data(size_t size)
     if (ptr_free == NULL)
     {
         ptr_data = alloc_data_notempty(size);
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return ptr_data;
     }
     else
     {
         ptr_data = alloc_data_empty(size, ptr_free);
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return ptr_data;
     }
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
 
     return NULL;
 }
@@ -191,37 +207,21 @@ void *alloc_data(size_t size)
 void my_free(void *ptr)
 {
     LOG_ENTER_FUNCTION();
-    meta_struck *tmp = ptr_metahead;
-    while (tmp != NULL)
+    while (ptr_metahead != NULL)
     {
-        if (tmp->p_ptr_data == ptr)
+        if (ptr_metahead->p_ptr_data == ptr)
         {
-            if (tmp->is_free == 1)
+            if (ptr_metahead->is_free == 1)
             {
                 my_log("[ERROR] Block is already free\n");
                 break;
             }
-            tmp->is_free = 1;
+            ptr_metahead->is_free = 1;
             break;
         }
-        tmp = tmp->p_next;
+        ptr_metahead = ptr_metahead->p_next;
     }
-    //merging blocks 
-    my_merge();
-}
-
-void my_merge(){
-    meta_struck *tmp2 = ptr_metahead;
-    while (tmp2 != NULL)
-    {
-        while (tmp2->is_free == 1 && tmp2->p_next != NULL && tmp2->p_next->is_free == 1)
-        {
-            tmp2->sz_size += tmp2->p_next->sz_size;
-            tmp2->p_next = tmp2->p_next->p_next;
-        }
-        tmp2 = tmp2->p_next;
-    }
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
 }
 
 // reallocate an allocated data block
@@ -236,12 +236,12 @@ meta_struck *get_chunck(void *ptr)
     {
         if (tmp->p_ptr_data == ptr)
         {
-            // LOG_EXIT_FUNCTION();
+            LOG_EXIT_FUNCTION();
             return tmp;
         }
         tmp = tmp->p_next;
     }
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
     return NULL;
 }
 
@@ -250,13 +250,13 @@ void *my_realloc(void *ptr, size_t size)
     LOG_ENTER_FUNCTION();
     if (ptr == NULL)
     {
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return my_malloc(size);
     }
     if (size == 0)
     {
         my_free(ptr);
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
 
@@ -264,24 +264,24 @@ void *my_realloc(void *ptr, size_t size)
     if (chunck == NULL)
     {
         my_log("[ERROR] Chunck not found\n");
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
     if (chunck->sz_size >= size)
     {
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return ptr;
     }
 
     void *new_ptr = my_malloc(size);
     if (new_ptr == NULL)
     {
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
     memcpy(new_ptr, ptr, chunck->sz_size);
     my_free(ptr);
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
     return new_ptr;
 }
 
@@ -294,11 +294,11 @@ void *my_calloc(size_t nmemb, size_t size)
     void *ptr = my_malloc(nmemb * size);
     if (ptr == NULL)
     {
-        // LOG_EXIT_FUNCTION();
+        LOG_EXIT_FUNCTION();
         return NULL;
     }
     memset(ptr, 0, nmemb * size);
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
     return ptr;
 }
 
@@ -314,21 +314,19 @@ void my_whoami(meta_struck *ptr)
     my_log("\t[*] is_free is %d\n", ptr->is_free);
     my_log("[INFO] ##########################\n\n");
 
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
 }
 
 void mygetlist()
 {
     LOG_ENTER_FUNCTION();
-    my_log("[############################################################################################# metahead #]\n%p\n", ptr_metahead);
     meta_struck *tmp = ptr_metahead;
     while (tmp != NULL)
     {
-        my_whoami(tmp);
+        // my_whoami(tmp);
         tmp = tmp->p_next;
     }
-    my_log("[################################################################################################# metatail #]\n%p\n", ptr_metatail);
-    // LOG_EXIT_FUNCTION();
+    LOG_EXIT_FUNCTION();
 }
 
 ////////////////////////////////////////////////

@@ -17,6 +17,9 @@ dynamic: ${LIB}
 
 static: ${SLIB}
 
+my_sec:
+	${CC} ${CFLAGS} -o my_sec src/my_secmalloc.c
+
 clean:
 	${RM} src/.*.swp src/*~ src/*.o test/*.o
 
