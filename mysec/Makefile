@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -I./include -Wall -Wextra -Werror
 PRJ = my_secmalloc
-OBJS = src/my_secmalloc.o
+OBJS = src/my_secmalloc.o src/utils.o
 SLIB = lib${PRJ}.a
 LIB = lib${PRJ}.so
 GCOVFLAGS = --coverage
@@ -19,11 +19,16 @@ dynamic: ${LIB}
 static: ${SLIB}
 
 my_sec:
-	${CC} ${CFLAGS} -o my_sec src/my_secmalloc.c
+	${CC} ${CFLAGS} -o my_sec src/copy.c
 
 clean:
-	${RM} src/.*.swp src/*~ src/*.o test/*.o
+	${RM} src/.*.swp src/*~ src/*.o test/*.o coverage.info  
+	rm -rf out/* test/test  
+	find . -type f -name '*.gcda' -delete
+	find . -type f -name '*.gcno' -delete
+	find . -type f -name '*.gcov' -delete
 
+	
 distclean: clean
 	${RM} ${SLIB} ${LIB}
 

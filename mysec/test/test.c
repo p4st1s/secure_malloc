@@ -5,6 +5,8 @@
 #include "my_secmalloc.h"
 #include <sys/mman.h>
 #include <time.h>
+#include "utils.h"
+
 
 // Simple mmap test
 Test(mmap, simple) {
@@ -191,3 +193,178 @@ Test(my_malloc, memory_leak_detection) {
     // Memory leak
     // Ideally, here we should have a way to detect the memory leak
 }
+
+Test (my_free, mergefree){
+    void *ptr = my_malloc(100);
+    void *ptr2 = my_malloc(100);
+    void *ptr3 = my_malloc(100);
+    void *ptr4 = my_malloc(100);
+    my_free(ptr);
+    my_free(ptr2);
+    mygetlist();
+    my_free(ptr3);
+    my_free(ptr4);
+}
+
+
+Test(memory, my_malloc) {
+    void *ptr = my_malloc(100);
+    cr_assert_not_null(ptr, "my_malloc should not return NULL");
+    meta_struck *chunk = get_chunck(ptr);
+    cr_assert_not_null(chunk, "The chunk metadata should not be NULL");
+    cr_assert(chunk->sz_size >= 100, "The chunk size should be at least 100 bytes");
+    cr_assert_eq(chunk->is_free, 0, "The chunk should be marked as not free");
+}
+
+Test(memory, my_free) {
+    void *ptr = my_malloc(100);
+    cr_assert_not_null(ptr, "my_malloc should not return NULL");
+
+    my_free(ptr);
+    meta_struck *chunk = get_chunck(ptr);
+    cr_assert_not_null(chunk, "The chunk metadata should not be NULL");
+    cr_assert_eq(chunk->is_free, 1, "The chunk should be marked as free after my_free");
+}
+
+Test(memory, my_realloc) {
+    void *ptr = my_malloc(100);
+    cr_assert_not_null(ptr, "my_malloc should not return NULL");
+
+    void *new_ptr = my_realloc(ptr, 200);
+    cr_assert_not_null(new_ptr, "my_realloc should not return NULL");
+
+    meta_struck *chunk = get_chunck(new_ptr);
+    cr_assert_not_null(chunk, "The chunk metadata should not be NULL");
+    cr_assert(chunk->sz_size>= 200, "The chunk size should be at least 200 bytes");
+    
+    cr_assert_eq(chunk->is_free, 0, "The chunk should be marked as not free after my_realloc");
+}
+
+Test(memory, my_calloc) {
+    void *ptr = my_calloc(10, 50);
+    cr_assert_not_null(ptr, "my_calloc should not return NULL");
+
+    meta_struck *chunk = get_chunck(ptr);
+    cr_assert_not_null(chunk, "The chunk metadata should not be NULL");
+    cr_assert(chunk->sz_size>= 10 * 50, "The chunk size should be at least 500 bytes");
+    cr_assert_eq(chunk->is_free, 0, "The chunk should be marked as not free");
+
+    // Check if the allocated memory is zero-initialized
+    for (size_t i = 0; i < 10 * 50; ++i) {
+        cr_assert_eq(((char *)ptr)[i], 0, "Memory allocated by my_calloc should be zero-initialized");
+    }
+}
+Test(memory, my_malloc_negative_size) {
+    void *ptr = my_malloc(-10);
+    cr_assert_null(ptr, "my_malloc with negative size should return NULL");
+}
+
+Test(memory, my_malloc_zero_size) {
+    void *ptr = my_malloc(0);
+    cr_assert_null(ptr, "my_malloc with size 0 should return NULL");
+}
+
+Test(memory, my_realloc_null_ptr) {
+    void *new_ptr = my_realloc(NULL, 100);
+    cr_assert_not_null(new_ptr, "my_realloc with NULL pointer should return a valid pointer");
+}
+
+Test(memory, my_realloc_zero_size) {
+    void *ptr = my_malloc(100);
+    cr_assert_not_null(ptr, "my_malloc should not return NULL");
+
+    void *new_ptr = my_realloc(ptr, 0);
+    cr_assert_null(new_ptr, "my_realloc with size 0 should return NULL");
+}
+
+Test(memory, my_realloc_invalid_ptr) {
+    void *ptr = (void *)0x12345678; // Some invalid address
+    void *new_ptr = my_realloc(ptr, 100);
+    cr_assert_null(new_ptr, "my_realloc with invalid pointer should return NULL");
+}
+
+// Test(memory, my_calloc_overflow) {
+//     // Try to allocate a huge amount of memory
+//     void *ptr = my_calloc(2000000 / 2, 2);
+//     cr_assert_null(ptr, "my_calloc should return NULL on overflow");
+// }
+
+Test(memory, my_malloc_overflow) {
+    void *XORcBVjbwEUiEA = my_malloc(77);
+XORcBVjbwEUiEA = my_realloc(XORcBVjbwEUiEA, 80);
+void *ifarxRPiOCA = my_malloc(164);
+my_free(ifarxRPiOCA);
+void *HLRKRfnPEZA = my_malloc(46);
+my_free(HLRKRfnPEZA);
+void *EFxFmZPXBg = my_malloc(237);
+void *mZTbrxgDFTw = my_malloc(171);
+my_free(mZTbrxgDFTw);
+void *qtOvhLEpKqcw = my_malloc(193);
+void *gFlCYVSGJnzQ = my_malloc(159);
+void *OxqyKOfgymANQ = my_malloc(101);
+EFxFmZPXBg = my_realloc(EFxFmZPXBg, 36);
+gFlCYVSGJnzQ = my_realloc(gFlCYVSGJnzQ, 117);
+OxqyKOfgymANQ = my_realloc(OxqyKOfgymANQ, 70);
+qtOvhLEpKqcw = my_realloc(qtOvhLEpKqcw, 241);
+void *fjkSQXKyUDw = my_malloc(185);
+my_free(fjkSQXKyUDw);
+void *mKNSUFSRw = my_malloc(172);
+void *uFBSBAouhxtrw = my_malloc(178);
+my_free(mKNSUFSRw);
+uFBSBAouhxtrw = my_realloc(uFBSBAouhxtrw, 124);
+void *uBXqYeWRXZA = my_malloc(11);
+my_free(uBXqYeWRXZA);
+void *CoFPMeLcuwhA = my_malloc(114);
+my_free(CoFPMeLcuwhA);
+void *ifzOnYaNpjQA = my_malloc(68);
+ifzOnYaNpjQA = my_realloc(ifzOnYaNpjQA, 154);
+void *jnoZmjAMg = my_malloc(116);
+void *uYbFedOoPbA = my_malloc(189);
+my_free(uYbFedOoPbA);
+jnoZmjAMg = my_realloc(jnoZmjAMg, 29);
+void *NJLFUktQ = my_malloc(167);
+my_free(NJLFUktQ);
+void *KWrhndJMxHnUA = my_malloc(106);
+KWrhndJMxHnUA = my_realloc(KWrhndJMxHnUA, 247);
+void *NqMffyCWvA = my_malloc(165);
+my_free(NqMffyCWvA);
+void *kaDtnNiMg = my_malloc(20);
+my_free(kaDtnNiMg);
+void *dWyllqkSDA = my_malloc(164);
+my_free(dWyllqkSDA);
+void *zZydvLBqg = my_malloc(254);
+zZydvLBqg = my_realloc(zZydvLBqg, 61);
+void *IhNiMQNjJJFw = my_malloc(212);
+void *DtRanillAVew = my_malloc(182);
+void *LPqTjsRPg = my_malloc(84);
+void *gHheAZpruvjA = my_malloc(223);
+my_free(gHheAZpruvjA);
+IhNiMQNjJJFw = my_realloc(IhNiMQNjJJFw, 14);
+LPqTjsRPg = my_realloc(LPqTjsRPg, 56);
+void *cCkVCGVMzumow = my_malloc(83);
+my_free(DtRanillAVew);
+void *mECiktwyFw = my_malloc(42);
+my_free(mECiktwyFw);
+cCkVCGVMzumow = my_realloc(cCkVCGVMzumow, 123);
+void *ZeKIvBVhw = my_malloc(132);
+void *WdydAPnqburGg = my_malloc(37);
+my_free(WdydAPnqburGg);
+ZeKIvBVhw = my_realloc(ZeKIvBVhw, 96);
+void *DjhTqMag = my_malloc(43);
+void *lvWGPqDUg = my_malloc(125);
+my_free(lvWGPqDUg);
+void *doUJYFHkYKVcA = my_malloc(166);
+my_free(doUJYFHkYKVcA);
+DjhTqMag = my_realloc(DjhTqMag, 106);
+void *FHiuuUNCBqjA = my_malloc(214);
+void *woORQdEEpDSQ = my_malloc(40);
+FHiuuUNCBqjA = my_realloc(FHiuuUNCBqjA, 153);
+void *YqAlAXEHFLJg = my_malloc(126);
+my_free(YqAlAXEHFLJg);
+woORQdEEpDSQ = my_realloc(woORQdEEpDSQ, 119);
+}
+
+
+// Test(random, random_test){
+
+// }

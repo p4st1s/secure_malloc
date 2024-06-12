@@ -16,15 +16,18 @@ typedef struct meta_struck {
 
 void    mygetlist();
 void    *init_metadata();
-void    my_log(const char *fmt, ...);
+// void    my_log(const char *fmt, ...);
 void    *my_malloc(size_t size);
 void    my_free(void *ptr);
 void    my_merge(); 
 void    *my_calloc(size_t nmemb, size_t size);
 void    *my_realloc(void *ptr, size_t size);
 void    my_whoami(meta_struck *ptr);
+void    *remap_metadata(size_t new_size);
 void    *alloc_data(size_t size);
 meta_struck *find_empty_block(size_t size);
+//get_chunck
+meta_struck *get_chunck(void *ptr);
 
 
 #endif
