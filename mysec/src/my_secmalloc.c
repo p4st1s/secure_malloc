@@ -17,8 +17,8 @@
 
 
 // ################ GLobal variable #################
-#define METADATA_SIZE 0x1000
-#define PADDING 0x10000
+#define METADATA_SIZE 10000
+#define PADDING 10000
 meta_struck *ptr_metahead = NULL;
 meta_struck *ptr_metatail = NULL;
 int nb_meta = 0;
