@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <alloca.h>
 #include <string.h>
+#include <fcntl.h> 
+#include <stdint.h> 
+#include <stdint.h> 
 
 #include "utils.h"
 
@@ -17,8 +20,8 @@
 #define LOG_DEBUG "[DEBUG]"
 #define LOG_ERROR "[ERROR]"
 
-int log_fd = -1; // Default log file descriptor
-
+int log_fd =-1; // Default log file descriptor
+int log_lvl = 0;
 /**
  * Returns the color associated with a given log level.
  *
@@ -62,14 +65,20 @@ void my_log(const char *fmt, ...)
 
     if (strstr(buffer, LOG_INFO) != NULL)
     {
+        if (log_lvl<1)
+            return;   
         color = get_log_color(LOG_INFO);
     }
     else if (strstr(buffer, LOG_DEBUG) != NULL)
     {
+        if (log_lvl<3)
+            return;
         color = get_log_color(LOG_DEBUG);
     }
     else if (strstr(buffer, LOG_ERROR) != NULL)
     {
+        if (log_lvl<2)
+            return;
         color = get_log_color(LOG_ERROR);
     }
 
@@ -92,11 +101,10 @@ void my_log(const char *fmt, ...)
  */
 int create_log_file(const char *path)
 {
-    FILE *log_file = fopen(path, "w");
-    if (log_file == NULL)
+    log_fd= open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (log_fd == -1)
         return -1;
-
-    return log_file->_fileno;
+    return log_fd;
 }
 
 /**
@@ -109,30 +117,46 @@ void init_logging()
 {
     // Get the path from the environment variable
     const char *path = getenv("MSM_OUTPUT");
+
     // write(STDOUT_FILENO, path, strlen(path));
     if (path == NULL)
     {
-        log_fd = DEACTIVATE_LOGGING;
+        log_fd = -1;
         return;
     }
+
 
     // If stdout, set the file descriptor to stdout
     if (strcmp(path, "stdout") == 0)
     {
+
         log_fd = STDOUT_FILENO;
-        return;
+    }
+
+    const char *lvl=getenv("LOG_LVL");
+    if(lvl!=NULL){
+        if(strcmp(lvl,"INFO")==0){
+            log_lvl=1;
+        }
+        else if(strcmp(lvl,"ERROR")==0){
+            log_lvl=2;
+        }
+        else if(strcmp(lvl,"DEBUG")==0){
+            log_lvl=3;
+        }
     }
 
     // If already opened, return
-    if (log_fd != -1)
+    if (log_fd != -1){
         return;
 
-    log_fd = create_log_file(path);
-    if (log_fd == -1)
-    {
-        my_log("[ERROR] Failed to create log file");
-        return;
     }
+
+    else{
+        my_log("[INFO] Creating log file at %s", path);
+        log_fd = create_log_file(path);
+    }
+
 }
 
 /**
@@ -141,10 +165,42 @@ void init_logging()
  */
 void close_logging()
 {
-    if (log_fd == DEACTIVATE_LOGGING)
+    if (log_fd == -1)
         return;
 
-    my_log("[INFO] Closing log file");
+    my_log("[INFO] Closing log file\n");
 
     close(log_fd);
+}
+
+
+/**
+ * Generates a random canary value.
+ *
+ * This function opens the /dev/urandom device file and reads 4 bytes from it to generate a random canary value.
+ * The canary value is used as a security measure to detect buffer overflows by placing it before the allocated memory
+ * and checking if it has been modified before freeing the memory.
+ *
+ * @return The generated random canary value.
+ *         If an error occurs during the generation process, 0 is returned.
+ */
+uint32_t get_random_canary()
+{
+    // Open /dev/urandom
+    uint32_t fd = open("/dev/urandom", O_RDONLY);
+    if (fd == (uint32_t)-1)
+        return 0;
+
+    // Read 4 bytes from /dev/urandom
+    uint32_t random = 0;
+    if (lseek(fd, -4, SEEK_END) == -1)
+        return 0;
+
+    // Put the random value in the canary
+    if (read(fd, &random, sizeof(random)) == -1)
+        return 0;
+
+    close(fd);
+
+    return random;
 }
