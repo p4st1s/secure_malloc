@@ -22,7 +22,7 @@ meta_struck *find_free_chunck(size_t size);
 void *get_chunck(size_t size);
 void *split_chunck(meta_struck *ptr, size_t size);
 void *alloc_chunck(size_t size);
-
+meta_struck *find_chunck(void *ptr);
 
 void my_free(void *ptr);
 void my_merge();

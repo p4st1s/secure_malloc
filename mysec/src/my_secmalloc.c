@@ -155,6 +155,21 @@ void *get_chunck(size_t size)
     LOG_EXIT_FUNCTION();
     return ptr_free;
 }
+
+meta_struck * find_chunck(void *ptr){
+    meta_struck *ptr_meta = ptr_metahead;
+    while (ptr_meta != NULL)
+    {
+        if (ptr_meta->p_ptr_data == ptr)
+        {
+            return ptr_meta;
+        }
+        ptr_meta = ptr_meta->p_next;
+    }
+    return NULL;
+}
+
+
 /**
  * Splits a chunk of memory into two parts, creating a new metadata structure for the second part.
  * 
@@ -455,6 +470,12 @@ void clean_memory()
 void *my_malloc(size_t size){
     my_log("[INFO] Allocating memory of size %lu\n", size);
     LOG_ENTER_FUNCTION();
+    if (size <= 0)
+    {
+        my_log("[ERROR] size is less than 0\n");
+        LOG_EXIT_FUNCTION();
+        return NULL;
+    }
     size=(size % 16 ? size + 16 - (size % 16) : size);
     if (ptr_metahead == NULL)
     {
@@ -519,6 +540,12 @@ void *my_calloc(size_t nmemb, size_t size){
  */
 void *my_realloc(void *ptr, size_t size){
     LOG_ENTER_FUNCTION();
+    if (size <= 0)
+    {
+        my_log("[ERROR] size is less than 0\n");
+        LOG_EXIT_FUNCTION();
+        return NULL;
+    }
     my_log("[INFO] Reallocating memory of size %lu\n", size);
     if (ptr == NULL)
     {
