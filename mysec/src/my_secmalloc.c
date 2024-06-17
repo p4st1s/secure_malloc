@@ -574,11 +574,14 @@ void *my_realloc(void *ptr, size_t size){
         return ptr;
     }
 
-    size_t total = ptr_meta ->sz_size;
-    meta_struck *tmp = ptr_meta->p_next;
-    while(tmp->is_free == 1 && tmp->p_ptr_data+tmp->sz_size+CANARY_SIZE == tmp->p_next->p_ptr_data)
+    size_t total = ptr_meta->sz_size;
+    meta_struck *tmp = ptr_meta;
+
+
+    while(tmp->p_next->is_free == 1 && tmp->p_ptr_data+tmp->sz_size+CANARY_SIZE == tmp->p_next->p_ptr_data)
     {
-        total += tmp->sz_size;
+        total += tmp->p_next->sz_size+CANARY_SIZE;
+        my_log("[INFO] Total is %lu\n", total);
         if (total >= size)
         {
             break;
@@ -589,12 +592,14 @@ void *my_realloc(void *ptr, size_t size){
 
 
     }
+    my_log("[INFO] Total is %lu\n", total);
         //todo 
     if (total>= size){
-        ptr_meta->p_next= tmp->p_next;
+        ptr_meta->p_next= tmp->p_next->p_next;
         ptr_meta->sz_size = total;
         ptr_meta->canari= tmp->canari;
-        return ptr_meta->p_ptr_data;
+        
+        return split_chunck(ptr_meta, size);
 
     }
 

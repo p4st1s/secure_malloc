@@ -81,6 +81,13 @@ LD_PRELOAD=./lib/libmy_secmalloc.so ./your_program
 
 This will preload your secure memory allocator library (`libmy_secmalloc.so`) before executing `your_program`, ensuring that your memory allocation functions are used instead of the standard ones.
 
+## LOG
+You can use the 'MSM_OUTPUT' environment variable to set the file descriptor and 'LOG_LVL' environment variable to set the verbosity.
+```bash
+LOG_LVL=DEBUG MSM_OUTPUT=stdout LD_PRELOAD=./lib/libmy_secmalloc.so ./your_program
+```
+
+
 ## Testing
 
 To run the tests, execute the following command:
