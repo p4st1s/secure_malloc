@@ -573,17 +573,45 @@ void *my_realloc(void *ptr, size_t size){
         LOG_EXIT_FUNCTION();
         return ptr;
     }
-    void *ptr_new = my_malloc(size);
-    if (ptr_new == NULL)
+
+    size_t total = ptr_meta ->sz_size;
+    meta_struck *tmp = ptr_meta->p_next;
+    while(tmp->is_free == 1 && tmp->p_ptr_data+tmp->sz_size+CANARY_SIZE == tmp->p_next->p_ptr_data)
     {
-        my_log("[ERROR] ptr_new is NULL\n");
-        LOG_EXIT_FUNCTION();
-        return NULL;
+        total += tmp->sz_size;
+        if (total >= size)
+        {
+            break;
+        }
+        
+        tmp = tmp->p_next;
+
+
+
     }
-    memcpy(ptr_new, ptr, ptr_meta->sz_size);
-    my_free(ptr);
+        //todo 
+    if (total>= size){
+        ptr_meta->p_next= tmp->p_next;
+        ptr_meta->sz_size = total;
+        ptr_meta->canari= tmp->canari;
+        return ptr_meta->p_ptr_data;
+
+    }
+
+    else{
+        
+        void *ptr_new = my_malloc(size);
+        if (ptr_new == NULL)
+        {
+            my_log("[ERROR] ptr_new is NULL\n");
+            LOG_EXIT_FUNCTION();
+            return NULL;
+        }
+        memcpy(ptr_new, ptr, ptr_meta->sz_size);
+        my_free(ptr);
     LOG_EXIT_FUNCTION();
     return ptr_new;
+    }
 }
 
 
